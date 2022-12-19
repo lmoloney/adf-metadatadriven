@@ -73,7 +73,7 @@
 								"source": {
 									"type": "SqlServerSource",
 									"sqlReaderQuery": {
-										"value": "Select @{string(activity('GenerateSelectStatement').output.firstRow)} from @{item().SchemaName}.@{item().TableName}",
+										"value": "Select @{string(activity('GenerateSelectStatement').output.firstRow.SelectStatement)} from @{item().SchemaName}.@{item().TableName}",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
