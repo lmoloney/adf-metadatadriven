@@ -17,6 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "SqlServerSource",
+						"sqlReaderQuery": "select @@SERVERNAME as ServerName, TABLE_CATALOG as DatabaseName, TABLE_SCHEMA as SchemaName, TABLE_NAME as TableName, TABLE_TYPE as TableType from INFORMATION_SCHEMA.TABLES",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -40,13 +41,21 @@
 				"inputs": [
 					{
 						"referenceName": "OnPrem_SQLServer",
-						"type": "DatasetReference"
+						"type": "DatasetReference",
+						"parameters": {
+							"schema": "sys",
+							"table": "objects"
+						}
 					}
 				],
 				"outputs": [
 					{
 						"referenceName": "AzSQL_Driver",
-						"type": "DatasetReference"
+						"type": "DatasetReference",
+						"parameters": {
+							"driverdb_schema": "sourcedriver",
+							"driverdb_table": "tables"
+						}
 					}
 				]
 			}
