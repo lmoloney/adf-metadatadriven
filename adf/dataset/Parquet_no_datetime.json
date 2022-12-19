@@ -1,0 +1,48 @@
+{
+	"name": "Parquet_no_datetime",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "DataLake",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"Lake_ServerName": {
+				"type": "String",
+				"defaultValue": "test"
+			},
+			"Lake_DatabaseName": {
+				"type": "String",
+				"defaultValue": "master"
+			},
+			"Lake_SchemaName": {
+				"type": "String",
+				"defaultValue": "sys"
+			},
+			"Lake_TableName": {
+				"type": "String",
+				"defaultValue": "objects"
+			}
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "\"@{pipeline().runid}.snappy.parquet\"",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "\"@{pipeline().Pipeline}/@{dataset().Lake_ServerName}/@{dataset().Lake_DatabaseName}/@{dataset().Lake_SchemaName}/@{dataset().Lake_TableName}\"",
+					"type": "Expression"
+				},
+				"fileSystem": {
+					"value": "@pipeline().DataFactory",
+					"type": "Expression"
+				}
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	}
+}
