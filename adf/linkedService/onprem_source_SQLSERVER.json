@@ -1,6 +1,5 @@
 {
 	"name": "onprem_source_SQLSERVER",
-	"type": "Microsoft.DataFactory/factories/linkedservices",
 	"properties": {
 		"parameters": {
 			"onprem_server": {
@@ -15,22 +14,28 @@
 				"type": "string",
 				"defaultValue": "adfloader"
 			},
-			"onprem_password": {
-				"type": "securestring",
-				"defaultValue": {
-					"type": "SecureString",
-					"value": "**********"
-				}
+			"onprem_password_kvname": {
+				"type": "string",
+				"defaultValue": "adfloader"
 			}
 		},
 		"annotations": [],
 		"type": "SqlServer",
 		"typeProperties": {
-			"connectionString": "Integrated Security=False;Data Source=@{linkedService().onprem_server};Initial Catalog=@{linkedService().onprem_db};User ID=@{linkedService().onprem_username};Password=@{linkedService().onprem_password}"
+			"connectionString": "Integrated Security=False;Data Source=@{linkedService().onprem_server};Initial Catalog=@{linkedService().onprem_db};User ID=@{linkedService().onprem_username}",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "Azure_KeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "adfloader"
+			}
 		},
 		"connectVia": {
 			"referenceName": "onprem-shir",
 			"type": "IntegrationRuntimeReference"
 		}
-	}
+	},
+	"type": "Microsoft.DataFactory/factories/linkedservices"
 }
