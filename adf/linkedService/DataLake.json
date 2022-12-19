@@ -1,0 +1,10 @@
+{
+	"name": "DataLake",
+	"properties": {
+		"annotations": [],
+		"type": "AzureBlobFS",
+		"typeProperties": {
+			"url": "https://lumolonelake.dfs.core.windows.net/"
+		}
+	}
+}
