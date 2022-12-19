@@ -1,0 +1,9 @@
+{
+	"name": "demo-metadatadriven",
+	"location": "eastus2",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "f1175720-0e68-4ddc-b0a8-be9ef4df6e6d",
+		"tenantId": "e94992a0-3588-4236-914b-cec2e54292de"
+	}
+}
