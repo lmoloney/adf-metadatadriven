@@ -29,11 +29,11 @@
 			"location": {
 				"type": "AzureBlobFSLocation",
 				"fileName": {
-					"value": "\"@{pipeline().runid}.snappy.parquet\"",
+					"value": "@{pipeline().runid}.snappy.parquet",
 					"type": "Expression"
 				},
 				"folderPath": {
-					"value": "\"@{pipeline().Pipeline}/@{dataset().Lake_ServerName}/@{dataset().Lake_DatabaseName}/@{dataset().Lake_SchemaName}/@{dataset().Lake_TableName}\"",
+					"value": "@{pipeline().Pipeline}/@{dataset().Lake_ServerName}/@{dataset().Lake_DatabaseName}/@{dataset().Lake_SchemaName}/@{dataset().Lake_TableName}",
 					"type": "Expression"
 				},
 				"fileSystem": {
