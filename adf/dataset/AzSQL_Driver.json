@@ -1,0 +1,32 @@
+{
+	"name": "AzSQL_Driver",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Azure_DriverDB",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"driverdb_schema": {
+				"type": "string",
+				"defaultValue": "sys"
+			},
+			"driverdb_table": {
+				"type": "string",
+				"defaultValue": "objects"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().driverdb_schema",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().driverdb_table",
+				"type": "Expression"
+			}
+		}
+	}
+}
