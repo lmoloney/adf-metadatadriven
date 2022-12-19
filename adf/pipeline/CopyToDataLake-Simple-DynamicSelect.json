@@ -28,7 +28,7 @@
 							"driverdb_table": "tables"
 						}
 					},
-					"firstRowOnly": false
+					"firstRowOnly": true
 				}
 			},
 			{
