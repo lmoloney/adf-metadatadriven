@@ -1,0 +1,41 @@
+{
+	"name": "OnPrem_SQLServer",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "onprem_source_SQLSERVER",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"onprem_server": "localhost",
+				"onprem_db": "WideWorldImporters-Stable",
+				"onprem_username": "adfloader",
+				"onprem_password": {
+					"type": "SecureString",
+					"value": "**********"
+				}
+			}
+		},
+		"parameters": {
+			"schema": {
+				"type": "string",
+				"defaultValue": "sys"
+			},
+			"table": {
+				"type": "string",
+				"defaultValue": "objects"
+			}
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().schema",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().table",
+				"type": "Expression"
+			}
+		}
+	}
+}
