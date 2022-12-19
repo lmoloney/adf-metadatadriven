@@ -155,7 +155,7 @@
 								"source": {
 									"type": "SqlServerSource",
 									"sqlReaderQuery": {
-										"value": "Select STRING_AGG(column_name, ', ') as SelectStatement\nFROM INFORMATION_SCHEMA.COLUMNS\nwhere DATA_TYPE not in ('geography','varbinary')\nand table_name = \"'@{item().TableName}'\"\nand TABLE_SCHEMA = \"'@{item().SchemaName}'\"",
+										"value": "Select STRING_AGG(column_name, ', ') as SelectStatement\nFROM INFORMATION_SCHEMA.COLUMNS\nwhere DATA_TYPE not in ('geography','varbinary')\nand table_name = '@{item().TableName}'\nand TABLE_SCHEMA = '@{item().SchemaName}'",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
