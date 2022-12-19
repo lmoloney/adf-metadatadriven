@@ -16,8 +16,11 @@
 				"defaultValue": "adfloader"
 			},
 			"onprem_password": {
-				"type": "string",
-				"defaultValue": "EgUfMHc6efzininAz!xkbw6"
+				"type": "securestring",
+				"defaultValue": {
+					"type": "SecureString",
+					"value": "**********"
+				}
 			}
 		},
 		"annotations": [],
