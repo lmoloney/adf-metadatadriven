@@ -1,0 +1,181 @@
+{
+	"name": "CopyToDataLake-Incremental",
+	"properties": {
+		"activities": [
+			{
+				"name": "LookupTables",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "AzSQL_Driver",
+						"type": "DatasetReference",
+						"parameters": {
+							"driverdb_schema": "sourcedriver",
+							"driverdb_table": "tables"
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Copy_ForEach_Table",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "LookupTables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('LookupTables').output.value",
+						"type": "Expression"
+					},
+					"batchCount": 10,
+					"activities": [
+						{
+							"name": "CopyTables",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "GenerateSelectStatement",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"sqlReaderQuery": {
+										"value": "Select @{string(activity('GenerateSelectStatement').output.firstRow.SelectStatement)} from @{item().SchemaName}.@{item().TableName}",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "OnPrem_SQLServer",
+									"type": "DatasetReference",
+									"parameters": {
+										"schema": {
+											"value": "@item().SchemaName",
+											"type": "Expression"
+										},
+										"table": {
+											"value": "@item().TableName",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Parquet_no_datetime",
+									"type": "DatasetReference",
+									"parameters": {
+										"Lake_ServerName": {
+											"value": "@item().ServerName",
+											"type": "Expression"
+										},
+										"Lake_DatabaseName": {
+											"value": "@item().DatabaseName",
+											"type": "Expression"
+										},
+										"Lake_SchemaName": {
+											"value": "@item().SchemaName",
+											"type": "Expression"
+										},
+										"Lake_TableName": {
+											"value": "@item().TableName",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "GenerateSelectStatement",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"sqlReaderQuery": {
+										"value": "Select STRING_AGG(column_name, ', ') as SelectStatement\nFROM INFORMATION_SCHEMA.COLUMNS\nwhere DATA_TYPE not in ('geography','varbinary')\nand table_name = '@{item().TableName}'\nand TABLE_SCHEMA = '@{item().SchemaName}'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "OnPrem_SQLServer",
+									"type": "DatasetReference",
+									"parameters": {
+										"schema": "sys",
+										"table": "objects"
+									}
+								},
+								"firstRowOnly": true
+							}
+						}
+					]
+				}
+			}
+		],
+		"annotations": []
+	}
+}
