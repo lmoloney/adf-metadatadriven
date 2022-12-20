@@ -1,0 +1,72 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "demo-metadatadriven"
+		},
+		"Azure_DriverDB_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Azure_DriverDB'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=adf-demo-lumolone.database.windows.net;Initial Catalog=metadatadriver"
+		},
+		"onprem_source_SQLSERVER_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'onprem_source_SQLSERVER'",
+			"defaultValue": "Integrated Security=False;Data Source=@{linkedService().onprem_server};Initial Catalog=@{linkedService().onprem_db};User ID=@{linkedService().onprem_username}"
+		},
+		"Azure_KeyVault_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://adf-metadatadriver.vault.azure.net/"
+		},
+		"DataLake_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://lumolonelake.dfs.core.windows.net/"
+		},
+		"containerUri": {
+			"type": "string",
+			"metadata": "URI to storage account containing linked ARM templates"
+		},
+		"containerSasToken": {
+			"type": "string",
+			"metadata": "Sas token to storage account containing linked ARM templates"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "demo-metadatadriven_ArmTemplate_0",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_0.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"Azure_DriverDB_connectionString": {
+						"value": "[parameters('Azure_DriverDB_connectionString')]"
+					},
+					"onprem_source_SQLSERVER_connectionString": {
+						"value": "[parameters('onprem_source_SQLSERVER_connectionString')]"
+					},
+					"Azure_KeyVault_properties_typeProperties_baseUrl": {
+						"value": "[parameters('Azure_KeyVault_properties_typeProperties_baseUrl')]"
+					},
+					"DataLake_properties_typeProperties_url": {
+						"value": "[parameters('DataLake_properties_typeProperties_url')]"
+					}
+				}
+			},
+			"dependsOn": []
+		}
+	]
+}

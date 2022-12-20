@@ -1,0 +1,676 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "demo-metadatadriven"
+		},
+		"Azure_DriverDB_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Azure_DriverDB'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=adf-demo-lumolone.database.windows.net;Initial Catalog=metadatadriver"
+		},
+		"onprem_source_SQLSERVER_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'onprem_source_SQLSERVER'",
+			"defaultValue": "Integrated Security=False;Data Source=@{linkedService().onprem_server};Initial Catalog=@{linkedService().onprem_db};User ID=@{linkedService().onprem_username}"
+		},
+		"Azure_KeyVault_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://adf-metadatadriver.vault.azure.net/"
+		},
+		"DataLake_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://lumolonelake.dfs.core.windows.net/"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/Azure_DriverDB')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('Azure_DriverDB_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Azure_KeyVault')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('Azure_KeyVault_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/onprem-shir')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "SelfHosted",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DataLake')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('DataLake_properties_typeProperties_url')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzSQL_Driver')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Azure_DriverDB",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"driverdb_schema": {
+						"type": "string",
+						"defaultValue": "sys"
+					},
+					"driverdb_table": {
+						"type": "string",
+						"defaultValue": "objects"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().driverdb_schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().driverdb_table",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Azure_DriverDB')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/onprem_source_SQLSERVER')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"parameters": {
+					"onprem_server": {
+						"type": "string",
+						"defaultValue": "localhost"
+					},
+					"onprem_db": {
+						"type": "string",
+						"defaultValue": "WideWorldImporters-Stable"
+					},
+					"onprem_username": {
+						"type": "string",
+						"defaultValue": "adfloader"
+					},
+					"onprem_password_kvname": {
+						"type": "string",
+						"defaultValue": "adfloader"
+					}
+				},
+				"annotations": [],
+				"type": "SqlServer",
+				"typeProperties": {
+					"connectionString": "[parameters('onprem_source_SQLSERVER_connectionString')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "Azure_KeyVault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "adfloader"
+					}
+				},
+				"connectVia": {
+					"referenceName": "onprem-shir",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/onprem-shir')]",
+				"[concat(variables('factoryId'), '/linkedServices/Azure_KeyVault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Parquet_no_datetime')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "DataLake",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Lake_ServerName": {
+						"type": "String",
+						"defaultValue": "test"
+					},
+					"Lake_DatabaseName": {
+						"type": "String",
+						"defaultValue": "master"
+					},
+					"Lake_SchemaName": {
+						"type": "String",
+						"defaultValue": "sys"
+					},
+					"Lake_TableName": {
+						"type": "String",
+						"defaultValue": "objects"
+					}
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@{pipeline().runid}.snappy.parquet",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@{pipeline().Pipeline}/@{dataset().Lake_ServerName}/@{dataset().Lake_DatabaseName}/@{dataset().Lake_SchemaName}/@{dataset().Lake_TableName}",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@pipeline().DataFactory",
+							"type": "Expression"
+						}
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/DataLake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/OnPrem_SQLServer')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "onprem_source_SQLSERVER",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"onprem_server": "localhost",
+						"onprem_db": "WideWorldImporters-Stable",
+						"onprem_username": "adfloader"
+					}
+				},
+				"parameters": {
+					"schema": {
+						"type": "string",
+						"defaultValue": "sys"
+					},
+					"table": {
+						"type": "string",
+						"defaultValue": "objects"
+					}
+				},
+				"annotations": [],
+				"type": "SqlServerTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().table",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/onprem_source_SQLSERVER')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/CopyTableInformation')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "CopyTableNames",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlServerSource",
+								"sqlReaderQuery": "select @@SERVERNAME as ServerName, TABLE_CATALOG as DatabaseName, TABLE_SCHEMA as SchemaName, TABLE_NAME as TableName, TABLE_TYPE as TableType from INFORMATION_SCHEMA.TABLES",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"tableOption": "autoCreate",
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "OnPrem_SQLServer",
+								"type": "DatasetReference",
+								"parameters": {
+									"schema": "sys",
+									"table": "objects"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "AzSQL_Driver",
+								"type": "DatasetReference",
+								"parameters": {
+									"driverdb_schema": "sourcedriver",
+									"driverdb_table": "tables"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/OnPrem_SQLServer')]",
+				"[concat(variables('factoryId'), '/datasets/AzSQL_Driver')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/CopyToDataLake-Simple')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "LookupTables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "AzSQL_Driver",
+								"type": "DatasetReference",
+								"parameters": {
+									"driverdb_schema": "sourcedriver",
+									"driverdb_table": "tables"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Copy_ForEach_Table",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "LookupTables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('LookupTables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 10,
+							"activities": [
+								{
+									"name": "CopyTables",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlServerSource",
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "OnPrem_SQLServer",
+											"type": "DatasetReference",
+											"parameters": {
+												"schema": {
+													"value": "@item().SchemaName",
+													"type": "Expression"
+												},
+												"table": {
+													"value": "@item().TableName",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "Parquet_no_datetime",
+											"type": "DatasetReference",
+											"parameters": {
+												"Lake_ServerName": {
+													"value": "@item().ServerName",
+													"type": "Expression"
+												},
+												"Lake_DatabaseName": {
+													"value": "@item().DatabaseName",
+													"type": "Expression"
+												},
+												"Lake_SchemaName": {
+													"value": "@item().SchemaName",
+													"type": "Expression"
+												},
+												"Lake_TableName": {
+													"value": "@item().TableName",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/AzSQL_Driver')]",
+				"[concat(variables('factoryId'), '/datasets/OnPrem_SQLServer')]",
+				"[concat(variables('factoryId'), '/datasets/Parquet_no_datetime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/CopyToDataLake-Simple-DynamicSelect')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "LookupTables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "AzSQL_Driver",
+								"type": "DatasetReference",
+								"parameters": {
+									"driverdb_schema": "sourcedriver",
+									"driverdb_table": "tables"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Copy_ForEach_Table",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "LookupTables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('LookupTables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 10,
+							"activities": [
+								{
+									"name": "CopyTables",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "GenerateSelectStatement",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlServerSource",
+											"sqlReaderQuery": {
+												"value": "Select @{string(activity('GenerateSelectStatement').output.firstRow.SelectStatement)} from @{item().SchemaName}.@{item().TableName}",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "OnPrem_SQLServer",
+											"type": "DatasetReference",
+											"parameters": {
+												"schema": {
+													"value": "@item().SchemaName",
+													"type": "Expression"
+												},
+												"table": {
+													"value": "@item().TableName",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "Parquet_no_datetime",
+											"type": "DatasetReference",
+											"parameters": {
+												"Lake_ServerName": {
+													"value": "@item().ServerName",
+													"type": "Expression"
+												},
+												"Lake_DatabaseName": {
+													"value": "@item().DatabaseName",
+													"type": "Expression"
+												},
+												"Lake_SchemaName": {
+													"value": "@item().SchemaName",
+													"type": "Expression"
+												},
+												"Lake_TableName": {
+													"value": "@item().TableName",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "GenerateSelectStatement",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlServerSource",
+											"sqlReaderQuery": {
+												"value": "Select STRING_AGG(column_name, ', ') as SelectStatement\nFROM INFORMATION_SCHEMA.COLUMNS\nwhere DATA_TYPE not in ('geography','varbinary')\nand table_name = '@{item().TableName}'\nand TABLE_SCHEMA = '@{item().SchemaName}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "OnPrem_SQLServer",
+											"type": "DatasetReference",
+											"parameters": {
+												"schema": "sys",
+												"table": "objects"
+											}
+										},
+										"firstRowOnly": true
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/AzSQL_Driver')]",
+				"[concat(variables('factoryId'), '/datasets/OnPrem_SQLServer')]",
+				"[concat(variables('factoryId'), '/datasets/Parquet_no_datetime')]"
+			]
+		}
+	]
+}

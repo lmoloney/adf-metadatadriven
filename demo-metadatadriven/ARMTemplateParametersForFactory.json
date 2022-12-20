@@ -1,0 +1,21 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "demo-metadatadriven"
+		},
+		"Azure_DriverDB_connectionString": {
+			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=adf-demo-lumolone.database.windows.net;Initial Catalog=metadatadriver"
+		},
+		"onprem_source_SQLSERVER_connectionString": {
+			"value": "Integrated Security=False;Data Source=@{linkedService().onprem_server};Initial Catalog=@{linkedService().onprem_db};User ID=@{linkedService().onprem_username}"
+		},
+		"Azure_KeyVault_properties_typeProperties_baseUrl": {
+			"value": "https://adf-metadatadriver.vault.azure.net/"
+		},
+		"DataLake_properties_typeProperties_url": {
+			"value": "https://lumolonelake.dfs.core.windows.net/"
+		}
+	}
+}
